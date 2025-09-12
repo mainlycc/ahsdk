@@ -1,13 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Paperclip, Send, User, Bot, X } from "lucide-react"
+import { Paperclip, Send, User, Bot, X, LogOut } from "lucide-react"
 import Image from "next/image"
+import { useAuth } from "@/components/auth-provider"
+import { useRouter } from "next/navigation"
 
 interface FileAttachment {
   file: File
@@ -27,6 +29,29 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { user, logout, isLoading: authLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Ładowanie...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -162,8 +187,19 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto p-4">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-center">Chat AI</h1>
-        <p className="text-muted-foreground text-center mt-2">Zadaj pytanie lub dodaj pliki/zdjęcia jako kontekst</p>
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-center">Chat AI</h1>
+            <p className="text-muted-foreground text-center mt-2">Zadaj pytanie lub dodaj pliki/zdjęcia jako kontekst</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Zalogowany jako: {user.email}</span>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Wyloguj
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Card className="flex-1 flex flex-col">
