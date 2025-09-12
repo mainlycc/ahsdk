@@ -1,103 +1,279 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import type React from "react"
+import { useState, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Paperclip, Send, User, Bot, X } from "lucide-react"
+import Image from "next/image"
+
+interface FileAttachment {
+  file: File
+  preview?: string
+  type: "image" | "document"
+}
+
+interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+}
+
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [attachments, setAttachments] = useState<FileAttachment[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+
+    files.forEach((file) => {
+      const attachment: FileAttachment = {
+        file,
+        type: file.type.startsWith("image/") ? "image" : "document",
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        attachment.preview = e.target?.result as string
+        setAttachments((prev) => [...prev, attachment])
+      }
+
+      if (attachment.type === "image") {
+        reader.readAsDataURL(file)
+      } else {
+        reader.readAsDataURL(file)
+      }
+    })
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          attachments: attachments.map((att) => ({
+            name: att.file.name,
+            type: att.file.type,
+            data: att.preview, // This now contains base64 data
+          })),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Błąd podczas komunikacji z API")
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error("Brak odpowiedzi z serwera")
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "",
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+
+      const decoder = new TextDecoder()
+      let done = false
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read()
+        done = readerDone
+
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split("\n")
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6)
+              if (data === "[DONE]") {
+                done = true
+                break
+              }
+
+              try {
+                const parsed = JSON.parse(data)
+                if (parsed.choices?.[0]?.delta?.content) {
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessage.id
+                        ? { ...msg, content: msg.content + parsed.choices[0].delta.content }
+                        : msg,
+                    ),
+                  )
+                }
+              } catch (e) {
+                // Ignore parsing errors for non-JSON lines
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Błąd:", error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Przepraszam, wystąpił błąd podczas przetwarzania Twojej wiadomości.",
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+      setAttachments([])
+    }
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col h-screen max-w-4xl mx-auto p-4">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-center">Chat AI</h1>
+        <p className="text-muted-foreground text-center mt-2">Zadaj pytanie lub dodaj pliki/zdjęcia jako kontekst</p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+      <Card className="flex-1 flex flex-col">
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Rozpocznij rozmowę lub dodaj pliki do analizy</p>
+              </div>
+            )}
+
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div className={`flex gap-3 max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    {message.role === "user" ? (
+                      <User className="w-4 h-4 text-primary-foreground" />
+                    ) : (
+                      <Bot className="w-4 h-4 text-primary-foreground" />
+                    )}
+                  </div>
+                  <div
+                    className={`rounded-lg p-3 ${
+                      message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div className="bg-muted rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.1s]" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.2s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        <div className="p-4 border-t">
+          {attachments.length > 0 && (
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((attachment, index) => (
+                  <div key={index} className="relative bg-muted rounded-lg p-2 flex items-center gap-2">
+                    {attachment.type === "image" && attachment.preview ? (
+                      <Image
+                        src={attachment.preview || "/placeholder.svg"}
+                        alt={attachment.file.name}
+                        width={40}
+                        height={40}
+                        className="rounded object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center">
+                        <Paperclip className="w-4 h-4" />
+                      </div>
+                    )}
+                    <span className="text-sm truncate max-w-[100px]">{attachment.file.name}</span>
+                    <Button size="sm" variant="ghost" className="w-6 h-6 p-0" onClick={() => removeAttachment(index)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.txt,.doc,.docx"
+              onChange={handleFileSelect}
+              className="hidden"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+
+            <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()}>
+              <Paperclip className="w-4 h-4" />
+            </Button>
+
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Napisz wiadomość..."
+              className="flex-1"
+              disabled={isLoading}
+            />
+
+            <Button type="submit" disabled={isLoading || !input.trim()}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </Card>
     </div>
-  );
+  )
 }
