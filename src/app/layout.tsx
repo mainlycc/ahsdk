@@ -9,8 +9,8 @@ import { AuthProvider } from "@/components/auth-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Chat AI - Asystent z załącznikami",
-  description: "Aplikacja chatAI z możliwością dodawania plików i zdjęć",
+  title: "Chat AI - Asystent z analizą PDF i obrazów",
+  description: "Aplikacja chatAI z możliwością analizy plików PDF, opisywania obrazów i zwykłej rozmowy z AI",
   generator: "v0.app",
 }
 

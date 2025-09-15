@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation"
 
 interface User {
   email: string
+  name?: string
+  avatar?: string
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
+  updateProfile: (profileData: Partial<User>) => void
   isLoading: boolean
 }
 
@@ -45,12 +48,33 @@ export function useAuthState() {
   const login = async (email: string, password: string): Promise<boolean> => {
     // Zakodowane dane logowania
     if (email === "test@example.com" && password === "password123") {
-      const userData = { email }
+      // Sprawdź czy istnieją zapisane dane profilu
+      const savedProfile = localStorage.getItem(`profile_${email}`)
+      let userData: User = { email }
+      
+      if (savedProfile) {
+        try {
+          const profile = JSON.parse(savedProfile)
+          userData = { ...userData, ...profile }
+        } catch (error) {
+          console.error('Błąd podczas ładowania profilu:', error)
+        }
+      }
+      
       setUser(userData)
       localStorage.setItem("user", JSON.stringify(userData))
       return true
     }
     return false
+  }
+
+  const updateProfile = (profileData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...profileData }
+      setUser(updatedUser)
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+      localStorage.setItem(`profile_${user.email}`, JSON.stringify(profileData))
+    }
   }
 
   const logout = () => {
@@ -59,5 +83,5 @@ export function useAuthState() {
     router.push("/login")
   }
 
-  return { user, login, logout, isLoading }
+  return { user, login, logout, updateProfile, isLoading }
 }

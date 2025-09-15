@@ -5,12 +5,15 @@ import { useAuthState } from "@/hooks/use-auth"
 
 interface User {
   email: string
+  name?: string
+  avatar?: string
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
+  updateProfile: (profileData: Partial<User>) => void
   isLoading: boolean
 }
 
