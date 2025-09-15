@@ -6,8 +6,34 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Paperclip, Send, User, Bot, X, Trash2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Paperclip, Send, User, Bot, X, Trash2, FileText, Image as ImageIcon, Download, Eye, ExternalLink, Loader2 } from "lucide-react"
 import Image from "next/image"
+import { 
+  Message, 
+  MessageContent,
+  MessageAvatar
+} from "@/components/ai-elements/message"
+import { 
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton
+} from "@/components/ai-elements/conversation"
+import { 
+  PromptInput,
+  PromptInputAttachments,
+  PromptInputAttachment,
+  PromptInputBody,
+  PromptInputTextarea,
+  PromptInputToolbar,
+  PromptInputTools,
+  PromptInputActionMenu,
+  PromptInputActionMenuTrigger,
+  PromptInputActionMenuContent,
+  PromptInputActionAddAttachments,
+  PromptInputSubmit
+} from "@/components/ai-elements/prompt-input"
 
 interface FileAttachment {
   file: File
@@ -31,7 +57,8 @@ export function ChatPanel({ user }: ChatPanelProps) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Scroll do końca gdy pojawiają się nowe wiadomości
@@ -63,8 +90,9 @@ export function ChatPanel({ user }: ChatPanelProps) {
       }
     })
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+    // wyczyść tylko ten input, który wywołał zdarzenie
+    if (event.target) {
+      (event.target as HTMLInputElement).value = ""
     }
   }
 
@@ -75,6 +103,191 @@ export function ChatPanel({ user }: ChatPanelProps) {
   // Funkcja do czyszczenia historii czatu
   const clearChatHistory = () => {
     setMessages([])
+  }
+
+  // Funkcja do analizy PDF
+  const handlePdfAnalysis = async (userMessage: Message) => {
+    try {
+      const pdfAttachments = userMessage.attachments?.filter(att => att.file.type === 'application/pdf') || []
+      
+      if (pdfAttachments.length === 0) {
+        throw new Error("Brak plików PDF do analizy")
+      }
+
+      console.log("[PDF Analysis] Starting PDF analysis for:", pdfAttachments.map(att => att.file.name))
+
+      // Dodaj wiadomość o rozpoczęciu analizy
+      const loadingMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "🔄 Analizuję plik PDF... To może potrwać kilka chwil.",
+      }
+      setMessages((prev) => [...prev, loadingMessage])
+
+      const response = await fetch("/api/analyze-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: pdfAttachments.map((att) => ({
+            name: att.file.name,
+            type: att.file.type,
+            size: att.file.size,
+            data: att.preview, // base64 data
+          })),
+          question: userMessage.content || "Przeanalizuj ten dokument PDF i opisz jego zawartość.",
+          analysisType: userMessage.content ? "qa" : "detailed",
+        }),
+      })
+
+      // Usuń wiadomość loading
+      setMessages((prev) => prev.filter(msg => msg.id !== loadingMessage.id))
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Nieznany błąd serwera" }))
+        throw new Error(errorData.error || `HTTP ${response.status}: Błąd podczas analizy PDF`)
+      }
+
+      // PDF response - zwykła odpowiedź tekstowa
+      const content = await response.text()
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: content,
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+
+      console.log("[PDF Analysis] Completed successfully")
+    } catch (error) {
+      console.error("PDF Analysis error:", error)
+      
+      // Usuń wiadomość loading jeśli istnieje
+      setMessages((prev) => prev.filter(msg => !msg.content.includes("🔄 Analizuję plik PDF")))
+      
+      // Sprawdź czy to błąd z retry logic
+      const errorMessage = error instanceof Error ? error.message : "Nieznany błąd"
+      
+      let userFriendlyMessage = "Przepraszam, wystąpił błąd podczas analizy PDF."
+      
+      if (errorMessage.includes("przeciążony")) {
+        userFriendlyMessage = "🔄 Serwer Google AI jest obecnie przeciążony. Spróbuj ponownie za chwilę - system automatycznie ponowi próbę."
+      } else if (errorMessage.includes("limit zapytań")) {
+        userFriendlyMessage = "⏰ Przekroczono limit zapytań do Google AI. Spróbuj ponownie za kilka minut."
+      } else if (errorMessage.includes("autoryzacji")) {
+        userFriendlyMessage = "🔑 Błąd autoryzacji Google AI. Sprawdź konfigurację klucza API."
+      } else if (errorMessage.includes("nieprawidłowe żądanie")) {
+        userFriendlyMessage = "📄 Nieprawidłowy plik PDF. Sprawdź czy plik nie jest uszkodzony i spróbuj ponownie."
+      }
+      
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: userFriendlyMessage,
+        },
+      ])
+    }
+  }
+
+  // Funkcja do obsługi zwykłych wiadomości (obrazy + tekst)
+  const handleRegularChat = async (userMessage: Message) => {
+    try {
+      console.log("[Regular Chat] Starting chat for:", userMessage.attachments?.map(att => att.file.name) || "text message")
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          attachments: userMessage.attachments?.map((att) => ({
+            name: att.file.name,
+            type: att.file.type,
+            data: att.preview, // This now contains base64 data
+          })) || [],
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Nieznany błąd serwera")
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      // Streaming response dla zwykłych wiadomości i obrazów
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error("Brak odpowiedzi z serwera")
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "",
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+
+      const decoder = new TextDecoder()
+      let done = false
+      let buffer = ""
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read()
+        done = readerDone
+
+        if (value) {
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          
+          // Keep the last incomplete line in buffer
+          buffer = lines.pop() || ""
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6).trim()
+              if (data === "[DONE]") {
+                done = true
+                break
+              }
+
+              if (data) {
+                try {
+                  const parsed = JSON.parse(data)
+                  if (parsed.choices?.[0]?.delta?.content) {
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessage.id
+                          ? { ...msg, content: msg.content + parsed.choices[0].delta.content }
+                          : msg,
+                      ),
+                    )
+                  }
+                } catch (e) {
+                  console.warn("Failed to parse streaming data:", data)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      console.log("[Regular Chat] Completed successfully")
+    } catch (error) {
+      console.error("Chat error:", error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `Przepraszam, wystąpił błąd podczas przetwarzania Twojej wiadomości: ${error instanceof Error ? error.message : "Nieznany błąd"}`,
+        },
+      ])
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,91 +307,18 @@ export function ChatPanel({ user }: ChatPanelProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          attachments: userMessage.attachments?.map((att) => ({
-            name: att.file.name,
-            type: att.file.type,
-            data: att.preview, // This now contains base64 data
-          })) || [],
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Błąd podczas komunikacji z API")
-      }
-
-      // Sprawdź czy to PDF (nie-streaming response)
-      const contentType = response.headers.get("content-type")
-      if (contentType === "text/plain") {
-        // PDF response - nie-streaming
-        const content = await response.text()
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: content,
-        }
-        setMessages((prev) => [...prev, assistantMessage])
+      // Sprawdź czy są pliki PDF w załącznikach
+      const hasPdfFiles = userMessage.attachments?.some(att => att.file.type === 'application/pdf') || false
+      
+      if (hasPdfFiles) {
+        // Użyj dedykowanego endpointu PDF
+        await handlePdfAnalysis(userMessage)
       } else {
-        // Streaming response dla zwykłych wiadomości i obrazów
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error("Brak odpowiedzi z serwera")
-        }
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "",
-        }
-
-        setMessages((prev) => [...prev, assistantMessage])
-
-        const decoder = new TextDecoder()
-        let done = false
-
-        while (!done) {
-          const { value, done: readerDone } = await reader.read()
-          done = readerDone
-
-          if (value) {
-            const chunk = decoder.decode(value, { stream: true })
-            const lines = chunk.split("\n")
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6)
-                if (data === "[DONE]") {
-                  done = true
-                  break
-                }
-
-                try {
-                  const parsed = JSON.parse(data)
-                  if (parsed.choices?.[0]?.delta?.content) {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessage.id
-                          ? { ...msg, content: msg.content + parsed.choices[0].delta.content }
-                          : msg,
-                      ),
-                    )
-                  }
-                } catch (e) {
-                  // Ignore parsing errors for non-JSON lines
-                }
-              }
-            }
-          }
-        }
+        // Użyj zwykłego endpointu chat
+        await handleRegularChat(userMessage)
       }
     } catch (error) {
-      console.error("Błąd:", error)
+      console.error("Submit error:", error)
       setMessages((prev) => [
         ...prev,
         {
@@ -194,17 +334,17 @@ export function ChatPanel({ user }: ChatPanelProps) {
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-2rem)]">
+    <div className="flex flex-col h-full">
       {/* Chat Interface */}
-      <Card className="flex-1 flex flex-col shadow-lg border-0 bg-card/50 backdrop-blur-sm min-h-0">
-        {/* Header with Clear Button */}
+      <Card className="flex-1 flex flex-col shadow-lg border-0 bg-card/50 backdrop-blur-sm min-h-0 relative">
+        {/* Header with Clear Button - Top Right */}
         {messages.length > 0 && (
-          <div className="flex justify-center p-3 border-b bg-card/30">
+          <div className="absolute top-3 right-3 z-10">
             <Button
               variant="outline"
               size="sm"
               onClick={clearChatHistory}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shadow-sm"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Wyczyść historię
@@ -214,18 +354,18 @@ export function ChatPanel({ user }: ChatPanelProps) {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full p-6">
-            <div className="space-y-6 max-w-4xl mx-auto">
+          <ScrollArea className="h-full p-4 lg:p-6">
+            <div className="space-y-4 max-w-4xl mx-auto">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground py-12">
-                  <div className="w-20 h-20 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Bot className="w-10 h-10 text-primary" />
+                <div className="text-center text-muted-foreground py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Bot className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">Witaj w Chat AI!</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Witaj w Chat AI!</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto text-sm">
                     Rozpocznij rozmowę, zadaj pytanie lub dodaj pliki PDF/obrazy do analizy
                   </p>
-                  <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">📄 Analiza PDF</span>
                     <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">🖼️ Opisy obrazów</span>
                     <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">💬 Rozmowa z AI</span>
@@ -235,22 +375,14 @@ export function ChatPanel({ user }: ChatPanelProps) {
 
               {messages.map((message, index) => {
                 const isUser = message.role === "user";
-                const showAvatar = index === 0 || messages[index - 1]?.role !== message.role;
                 
                 return (
-                  <div
+                  <Message
                     key={message.id}
-                    className={`flex gap-4 ${isUser ? "justify-end" : "justify-start"}`}
+                    from={isUser ? "user" : "assistant"}
+                    className="mb-4"
                   >
-                    {!isUser && showAvatar && (
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                        <Bot className="w-5 h-5 text-primary-foreground" />
-                      </div>
-                    )}
-                    
-                    {!isUser && !showAvatar && <div className="w-10" />}
-                    
-                    <div className={`flex flex-col max-w-[70%] ${isUser ? "items-end" : "items-start"}`}>
+                    <MessageContent variant="contained">
                       {/* Attachments */}
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-2">
@@ -264,18 +396,39 @@ export function ChatPanel({ user }: ChatPanelProps) {
                                   height={120}
                                   className="rounded-lg object-cover border-2 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer"
                                   onClick={() => {
-                                    // Otwórz obraz w pełnym rozmiarze
                                     window.open(attachment.preview, '_blank');
                                   }}
                                 />
                               ) : (
-                                <div className="w-24 h-24 bg-muted/50 rounded-lg flex items-center justify-center border-2 border-primary/20">
-                                  <div className="text-center">
-                                    <Paperclip className="w-6 h-6 mx-auto mb-1 text-primary" />
-                                    <span className="text-xs text-muted-foreground truncate block px-1">
-                                      {attachment.file.name}
-                                    </span>
-                                  </div>
+                                <div className="group relative">
+                                  {attachment.file.type === 'application/pdf' ? (
+                                    <div className="w-20 h-20 flex flex-col items-center justify-center p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                                         onClick={() => {
+                                           if (attachment.preview) {
+                                             window.open(attachment.preview, '_blank');
+                                           }
+                                         }}>
+                                      <FileText className="w-8 h-8 text-gray-600 mb-1 flex-shrink-0" />
+                                      <p className="text-xs text-gray-600 text-center leading-tight w-full px-1 overflow-hidden" 
+                                         style={{
+                                           display: '-webkit-box',
+                                           WebkitLineClamp: 2,
+                                           WebkitBoxOrient: 'vertical',
+                                           wordBreak: 'break-word'
+                                         }}>
+                                        {attachment.file.name}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="w-24 h-24 bg-muted/50 rounded-lg flex items-center justify-center border-2 border-primary/20">
+                                      <div className="text-center">
+                                        <Paperclip className="w-6 h-6 mx-auto mb-1 text-primary" />
+                                        <span className="text-xs text-muted-foreground truncate block px-1">
+                                          {attachment.file.name}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -285,36 +438,17 @@ export function ChatPanel({ user }: ChatPanelProps) {
                       
                       {/* Message content */}
                       {message.content && (
-                        <div
-                          className={`rounded-2xl px-4 py-3 ${
-                            isUser 
-                              ? "bg-primary text-primary-foreground rounded-br-md" 
-                              : "bg-muted text-foreground rounded-bl-md"
-                          }`}
-                        >
-                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                            {message.content}
-                          </div>
+                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                          {message.content}
                         </div>
                       )}
-                      
-                      {/* Message timestamp */}
-                      <div className={`text-xs text-muted-foreground mt-1 px-2 ${
-                        isUser ? "text-right" : "text-left"
-                      }`}>
-                        {new Date().toLocaleTimeString('pl-PL', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </div>
-                    </div>
+                    </MessageContent>
                     
-                    {isUser && (
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
-                        <User className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
+                    <MessageAvatar 
+                      src={isUser ? (user?.avatar || undefined) : "/bot-avatar.png"}
+                      name={isUser ? (user?.name || user?.email || "Użytkownik") : "AI"}
+                    />
+                  </Message>
                 );
               })}
 
@@ -339,7 +473,7 @@ export function ChatPanel({ user }: ChatPanelProps) {
         </div>
 
         {/* Input Area */}
-        <div className="p-6 border-t bg-card/50 backdrop-blur-sm">
+        <div className="relative px-4 lg:px-6 pt-3 pb-1 border-t bg-card/50 backdrop-blur-sm">
           {/* Attachments Preview */}
           {attachments.length > 0 && (
             <div className="mb-4">
@@ -362,7 +496,11 @@ export function ChatPanel({ user }: ChatPanelProps) {
                       />
                     ) : (
                       <div className="w-10 h-10 bg-primary/10 rounded-md flex items-center justify-center">
+                        {attachment.file.type === 'application/pdf' ? (
+                          <FileText className="w-4 h-4 text-primary" />
+                        ) : (
                         <Paperclip className="w-4 h-4 text-primary" />
+                        )}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -386,71 +524,113 @@ export function ChatPanel({ user }: ChatPanelProps) {
           )}
 
           {/* Input Form */}
-          <form onSubmit={handleSubmit} className="relative">
+          <div className="relative">
             <div className="flex gap-3 items-end">
-              {/* File Upload Button */}
-              <div className="relative">
+              {/* Ukryte inputy plików (triggery w toolbarze) */}
+              <div className="hidden">
                 <input
-                  ref={fileInputRef}
+                  ref={imageInputRef}
                   type="file"
                   multiple
-                  accept="image/*,.pdf,.txt,.doc,.docx"
+                  accept="image/*"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon" 
-                  className="w-12 h-12 rounded-full border-2 hover:bg-primary/5 hover:border-primary/20 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading}
-                >
-                  <Paperclip className="w-5 h-5" />
-                </Button>
+                <input
+                  ref={pdfInputRef}
+                  type="file"
+                  multiple
+                  accept="application/pdf"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
               </div>
 
-              {/* Text Input */}
-              <div className="flex-1 relative">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={attachments.some(att => att.file.type === 'application/pdf') 
-                    ? "Zadaj pytanie o PDF (np. 'Streść rozdział 2')" 
-                    : attachments.some(att => att.file.type.startsWith('image/'))
-                    ? "Opisz obrazy lub zadaj pytanie o nie"
-                    : "Napisz wiadomość..."}
-                  className="min-h-[48px] pr-12 border-2 rounded-2xl focus:border-primary/50 transition-colors"
-                  disabled={isLoading}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
+              {/* Prompt Input */}
+              <PromptInput
+                className="flex-1 min-h-[48px] border-2 rounded-2xl focus:border-primary/50 transition-colors"
+                onSubmit={(message, event) => {
+                  event.preventDefault();
+                  // Konwertuj message na format oczekiwany przez handleSubmit
+                  const syntheticEvent = {
+                    ...event,
+                    preventDefault: () => event.preventDefault(),
+                    currentTarget: event.currentTarget
+                  } as React.FormEvent<HTMLFormElement>;
+                  handleSubmit(syntheticEvent);
+                }}
+                accept="image/*,application/pdf"
+                multiple
+              >
+                <PromptInputBody>
+                  <PromptInputTextarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={attachments.some(att => att.file.type === 'application/pdf') 
+                      ? "Zadaj pytanie o PDF (np. 'Streść rozdział 2')" 
+                      : attachments.some(att => att.file.type.startsWith('image/'))
+                      ? "Opisz obrazy lub zadaj pytanie o nie"
+                      : "Napisz wiadomość..."}
+                    className="min-h-[44px] max-h-40 overflow-y-auto resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  
+                  {attachments.length > 0 && (
+                    <PromptInputAttachments>
+                      {(attachment) => (
+                        <PromptInputAttachment
+                          key={attachment.id}
+                          data={attachment}
+                        />
+                      )}
+                    </PromptInputAttachments>
+                  )}
+                </PromptInputBody>
                 
-                {/* Send Button */}
-                <Button 
-                  type="submit" 
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary hover:bg-primary/90 transition-colors"
-                  disabled={isLoading || (!input.trim() && attachments.length === 0)}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
+                <PromptInputToolbar>
+                  <PromptInputTools>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isLoading}
+                      aria-label="Dodaj obraz"
+                      title="Dodaj obraz"
+                    >
+                      <ImageIcon className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full"
+                      onClick={() => pdfInputRef.current?.click()}
+                      disabled={isLoading}
+                      aria-label="Dodaj PDF"
+                      title="Dodaj PDF"
+                    >
+                      <FileText className="w-5 h-5" />
+                    </Button>
+                  </PromptInputTools>
+                  
+                  <PromptInputSubmit 
+                    disabled={isLoading || (!input.trim() && attachments.length === 0)}
+                    status={isLoading ? "submitted" : undefined}
+                  />
+                </PromptInputToolbar>
+              </PromptInput>
             </div>
             
-            {/* Helper Text */}
-            <div className="mt-2 text-xs text-muted-foreground text-center">
+            {/* Helper Text (overlay - no extra height) */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-1 text-[10px] text-muted-foreground pointer-events-none select-none">
               {attachments.length > 0 ? (
                 "Pliki zostały załączone. Możesz zadać pytanie o ich zawartość."
               ) : (
                 "Naciśnij Enter aby wysłać, Shift+Enter dla nowej linii"
               )}
             </div>
-          </form>
+          </div>
         </div>
       </Card>
     </div>

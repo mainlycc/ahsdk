@@ -55,11 +55,6 @@ export function UserProfile({ user, onLogout }: UserProfileProps) {
             <span className="text-muted-foreground">Członek od</span>
             <span className="font-medium">Dzisiaj</span>
           </div>
-          
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Wiadomości</span>
-            <span className="font-medium">0</span>
-          </div>
         </div>
 
         <div className="mt-6 space-y-4">

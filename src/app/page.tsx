@@ -73,19 +73,19 @@ export default function ChatPage() {
         {/* Main Content Area */}
         <div className="flex flex-col h-screen">
           {/* Desktop Header */}
-          <div className="hidden lg:block p-6 pb-4">
-            <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <div className="hidden lg:block p-4 pb-2">
+            <div className="text-center space-y-1">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Chat AI - Asystent z analizą PDF i obrazów
               </h1>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
                 Aplikacja chatAI z możliwością analizy plików PDF, opisywania obrazów i zwykłej rozmowy z AI
               </p>
             </div>
           </div>
 
-          {/* Chat Panel - Fixed to bottom */}
-          <div className="flex-1 min-h-0 p-4 lg:p-6 pt-0 lg:pt-2">
+          {/* Chat Panel - Maximized height */}
+          <div className="flex-1 min-h-0 px-2 lg:px-4 pt-2 lg:pt-4 pb-0">
             <ChatPanel user={user} />
           </div>
         </div>

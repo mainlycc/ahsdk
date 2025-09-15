@@ -3,7 +3,10 @@
 import type React from "react";
 import { useState } from "react";
 import { PdfAnalysis } from "@/lib/schemas";
-import { Copy, Download, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Copy, Download, ChevronDown, ChevronUp, Check, FileText, Eye, ExternalLink } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type Part =
   | { type: "text"; text: string }
@@ -413,29 +416,73 @@ export function MessageView({ message }: MessageViewProps) {
           // PDF - pokaż informację o pliku zamiast iframe (bezpieczniej)
           if (mimeType === "application/pdf") {
             return (
-              <div
+              <Card
                 key={`${message.id}-pdf-${i}`}
-                className="group flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                className="group relative overflow-hidden border border-gray-200 bg-white hover:border-gray-300 hover:shadow-md transition-all duration-200"
               >
-                <div className="text-blue-600 text-xl">📄</div>
-                <div className="flex-1">
-                  <div className="font-medium text-blue-900">{fileName}</div>
-                  <div className="text-sm text-blue-700">Plik PDF został przesłany do analizy</div>
-                </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => copyToClipboard(fileName, `pdf-${i}`)}
-                    className="p-1.5 text-blue-600 hover:bg-blue-200 rounded-md"
-                    title="Kopiuj nazwę pliku"
-                  >
-                    {copiedText === `pdf-${i}` ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    {/* Ikona PDF - minimalistyczna */}
+                    <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5 text-white" />
+                    </div>
+
+                    {/* Zawartość pliku */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate mb-1">{fileName}</h4>
+                      <p className="text-sm text-gray-500">
+                        Plik PDF został przesłany do analizy
+                      </p>
+                    </div>
+
+                    {/* Akcje - pokazują się na hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          if (fileUrl) {
+                            window.open(fileUrl, '_blank');
+                          }
+                        }}
+                        title="Podgląd PDF"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          if (fileUrl) {
+                            const link = document.createElement('a');
+                            link.href = fileUrl;
+                            link.download = fileName;
+                            link.click();
+                          }
+                        }}
+                        title="Pobierz PDF"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => copyToClipboard(fileName, `pdf-${i}`)}
+                        title="Kopiuj nazwę pliku"
+                      >
+                        {copiedText === `pdf-${i}` ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             );
           }
 
