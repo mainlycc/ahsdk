@@ -339,36 +339,36 @@ export function ChatPanel({ user }: ChatPanelProps) {
       <Card className="flex-1 flex flex-col shadow-lg border-0 bg-card/50 backdrop-blur-sm min-h-0 relative">
         {/* Header with Clear Button - Top Right */}
         {messages.length > 0 && (
-          <div className="absolute top-3 right-3 z-10">
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
             <Button
               variant="outline"
               size="sm"
               onClick={clearChatHistory}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shadow-sm"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shadow-sm h-8 px-2 sm:h-9 sm:px-3"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Wyczyść historię
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Wyczyść historię</span>
             </Button>
           </div>
         )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full p-4 lg:p-6">
-            <div className="space-y-4 max-w-4xl mx-auto">
+          <ScrollArea className="h-full p-2 sm:p-4 lg:p-6">
+            <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Bot className="w-8 h-8 text-primary" />
+                <div className="text-center text-muted-foreground py-6 sm:py-8 px-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Witaj w Chat AI!</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto text-sm">
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">Witaj w Chat AI!</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto text-xs sm:text-sm">
                     Rozpocznij rozmowę, zadaj pytanie lub dodaj pliki PDF/obrazy do analizy
                   </p>
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">📄 Analiza PDF</span>
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">🖼️ Opisy obrazów</span>
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">💬 Rozmowa z AI</span>
+                  <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-1.5 sm:gap-2">
+                    <span className="px-2 sm:px-3 py-1 bg-primary/10 text-primary text-xs sm:text-sm rounded-full">📄 Analiza PDF</span>
+                    <span className="px-2 sm:px-3 py-1 bg-primary/10 text-primary text-xs sm:text-sm rounded-full">🖼️ Opisy obrazów</span>
+                    <span className="px-2 sm:px-3 py-1 bg-primary/10 text-primary text-xs sm:text-sm rounded-full">💬 Rozmowa z AI</span>
                   </div>
                 </div>
               )}
@@ -453,16 +453,16 @@ export function ChatPanel({ user }: ChatPanelProps) {
               })}
 
               {isLoading && (
-                <div className="flex gap-4 justify-start">
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="w-5 h-5 text-primary-foreground" />
+                <div className="flex gap-2 sm:gap-4 justify-start">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
                   </div>
-                  <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.1s]" />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <span className="text-sm text-muted-foreground ml-2">AI pisze...</span>
+                  <div className="bg-muted rounded-2xl rounded-bl-md px-3 sm:px-4 py-2 sm:py-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-bounce" />
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-bounce [animation-delay:0.1s]" />
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-bounce [animation-delay:0.2s]" />
+                      <span className="text-xs sm:text-sm text-muted-foreground ml-1 sm:ml-2">AI pisze...</span>
                     </div>
                   </div>
                 </div>
@@ -473,38 +473,38 @@ export function ChatPanel({ user }: ChatPanelProps) {
         </div>
 
         {/* Input Area */}
-        <div className="relative px-4 lg:px-6 pt-3 pb-1 border-t bg-card/50 backdrop-blur-sm">
+        <div className="relative px-2 sm:px-4 lg:px-6 pt-2 sm:pt-3 pb-1 border-t bg-card/50 backdrop-blur-sm">
           {/* Attachments Preview */}
           {attachments.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-3 sm:mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <Paperclip className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">
+                <Paperclip className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">
                   Załączone pliki ({attachments.length})
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {attachments.map((attachment, index) => (
-                  <div key={index} className="relative bg-muted/50 hover:bg-muted rounded-lg p-3 flex items-center gap-3 border transition-colors">
+                  <div key={index} className="relative bg-muted/50 hover:bg-muted rounded-lg p-2 sm:p-3 flex items-center gap-2 sm:gap-3 border transition-colors max-w-full">
                     {attachment.type === "image" && attachment.preview ? (
                       <Image
                         src={attachment.preview || "/placeholder.svg"}
                         alt={attachment.file.name}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover"
+                        width={32}
+                        height={32}
+                        className="rounded-md object-cover sm:w-10 sm:h-10 flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-primary/10 rounded-md flex items-center justify-center">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-md flex items-center justify-center flex-shrink-0">
                         {attachment.file.type === 'application/pdf' ? (
-                          <FileText className="w-4 h-4 text-primary" />
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                         ) : (
-                        <Paperclip className="w-4 h-4 text-primary" />
+                        <Paperclip className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                         )}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium truncate block">{attachment.file.name}</span>
+                      <span className="text-xs sm:text-sm font-medium truncate block">{attachment.file.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {(attachment.file.size / 1024 / 1024).toFixed(2)} MB
                       </span>
@@ -512,10 +512,10 @@ export function ChatPanel({ user }: ChatPanelProps) {
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      className="w-6 h-6 p-0 hover:bg-destructive/10 hover:text-destructive" 
+                      className="w-5 h-5 sm:w-6 sm:h-6 p-0 hover:bg-destructive/10 hover:text-destructive flex-shrink-0" 
                       onClick={() => removeAttachment(index)}
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </Button>
                   </div>
                 ))}
@@ -525,7 +525,7 @@ export function ChatPanel({ user }: ChatPanelProps) {
 
           {/* Input Form */}
           <div className="relative">
-            <div className="flex gap-3 items-end">
+            <div className="flex gap-2 sm:gap-3 items-end">
               {/* Ukryte inputy plików (triggery w toolbarze) */}
               <div className="hidden">
                 <input
@@ -548,7 +548,7 @@ export function ChatPanel({ user }: ChatPanelProps) {
 
               {/* Prompt Input */}
               <PromptInput
-                className="flex-1 min-h-[48px] border-2 rounded-2xl focus:border-primary/50 transition-colors"
+                className="flex-1 min-h-[44px] sm:min-h-[48px] border-2 rounded-2xl focus:border-primary/50 transition-colors"
                 onSubmit={(message, event) => {
                   event.preventDefault();
                   // Konwertuj message na format oczekiwany przez handleSubmit
@@ -567,11 +567,11 @@ export function ChatPanel({ user }: ChatPanelProps) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={attachments.some(att => att.file.type === 'application/pdf') 
-                      ? "Zadaj pytanie o PDF (np. 'Streść rozdział 2')" 
+                      ? "Zadaj pytanie o PDF..." 
                       : attachments.some(att => att.file.type.startsWith('image/'))
-                      ? "Opisz obrazy lub zadaj pytanie o nie"
+                      ? "Opisz obrazy..."
                       : "Napisz wiadomość..."}
-                    className="min-h-[44px] max-h-40 overflow-y-auto resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[40px] sm:min-h-[44px] max-h-32 sm:max-h-40 overflow-y-auto resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-base"
                   />
                   
                   {attachments.length > 0 && (
@@ -592,25 +592,25 @@ export function ChatPanel({ user }: ChatPanelProps) {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 rounded-full"
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full"
                       onClick={() => imageInputRef.current?.click()}
                       disabled={isLoading}
                       aria-label="Dodaj obraz"
                       title="Dodaj obraz"
                     >
-                      <ImageIcon className="w-5 h-5" />
+                      <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 rounded-full"
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full"
                       onClick={() => pdfInputRef.current?.click()}
                       disabled={isLoading}
                       aria-label="Dodaj PDF"
                       title="Dodaj PDF"
                     >
-                      <FileText className="w-5 h-5" />
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button>
                   </PromptInputTools>
                   
@@ -623,11 +623,11 @@ export function ChatPanel({ user }: ChatPanelProps) {
             </div>
             
             {/* Helper Text (overlay - no extra height) */}
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-1 text-[10px] text-muted-foreground pointer-events-none select-none">
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-1 text-[9px] sm:text-[10px] text-muted-foreground pointer-events-none select-none text-center px-2">
               {attachments.length > 0 ? (
-                "Pliki zostały załączone. Możesz zadać pytanie o ich zawartość."
+                <span className="hidden sm:inline">Pliki zostały załączone. Możesz zadać pytanie o ich zawartość.</span>
               ) : (
-                "Naciśnij Enter aby wysłać, Shift+Enter dla nowej linii"
+                <span className="hidden sm:inline">Naciśnij Enter aby wysłać, Shift+Enter dla nowej linii</span>
               )}
             </div>
           </div>

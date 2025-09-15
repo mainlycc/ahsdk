@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   title: "Chat AI - Asystent z analizą PDF i obrazów",
   description: "Aplikacja chatAI z możliwością analizy plików PDF, opisywania obrazów i zwykłej rozmowy z AI",
   generator: "v0.app",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  themeColor: "#000000",
 }
 
 export default function RootLayout({

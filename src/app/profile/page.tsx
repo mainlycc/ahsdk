@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { User, Mail, Save, ArrowLeft, Upload, X } from "lucide-react"
 import Link from "next/link"
+import { MobileNavigation } from "@/components/mobile-navigation"
 
 interface ProfileData {
   name: string
@@ -138,37 +139,53 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+      {/* Mobile Header */}
+      <div className="lg:hidden flex items-center justify-between p-3 sm:p-4 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-40">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+            <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base sm:text-lg font-semibold truncate">Mój profil</h1>
+            <p className="text-xs text-muted-foreground truncate">Edytuj swoje dane</p>
+          </div>
+        </div>
+        
+        {/* Mobile Navigation */}
+        <MobileNavigation currentPage="/profile" />
+      </div>
+
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-2xl">
+        {/* Desktop Header */}
+        <div className="hidden lg:flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Link href="/">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Powrót do chatu
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">Mój profil</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">Mój profil</h1>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <User className="w-4 h-4 sm:w-5 sm:h-5" />
               Informacje o profilu
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             {/* Avatar Section */}
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Zdjęcie profilowe</Label>
-              <div className="flex items-center gap-4">
-                <Avatar className="w-20 h-20">
+            <div className="space-y-3 sm:space-y-4">
+              <Label className="text-sm sm:text-base font-medium">Zdjęcie profilowe</Label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <Avatar className="w-16 h-16 sm:w-20 sm:h-20 mx-auto sm:mx-0">
                   <AvatarImage src={avatarPreview} alt={profileData.name || profileData.email} />
-                  <AvatarFallback className="text-lg">
+                  <AvatarFallback className="text-sm sm:text-lg">
                     {getInitials(profileData.name, profileData.email)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col sm:flex-row sm:space-y-0 sm:space-x-2">
                   <input
                     type="file"
                     accept="image/*"
@@ -177,7 +194,7 @@ export default function ProfilePage() {
                     id="avatar-upload"
                   />
                   <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
                       <span>
                         <Upload className="w-4 h-4 mr-2" />
                         Zmień zdjęcie
@@ -189,7 +206,7 @@ export default function ProfilePage() {
                       variant="outline" 
                       size="sm" 
                       onClick={removeAvatar}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-destructive hover:text-destructive w-full sm:w-auto"
                     >
                       <X className="w-4 h-4 mr-2" />
                       Usuń zdjęcie
@@ -204,18 +221,20 @@ export default function ProfilePage() {
             {/* Form Fields */}
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Imię i nazwisko</Label>
+                <Label htmlFor="name" className="text-sm font-medium">Imię i nazwisko</Label>
                 <Input
                   id="name"
                   value={profileData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="Wprowadź swoje imię i nazwisko"
+                  className="h-11 sm:h-10 text-base sm:text-sm"
+                  autoComplete="name"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
+                <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+                  <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
                   Adres email
                 </Label>
                 <Input
@@ -223,9 +242,9 @@ export default function ProfilePage() {
                   type="email"
                   value={profileData.email}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted h-11 sm:h-10 text-base sm:text-sm"
                 />
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Adres email nie może być zmieniony
                 </p>
               </div>
@@ -234,11 +253,11 @@ export default function ProfilePage() {
             <Separator />
 
             {/* Save Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end pt-2">
               <Button 
                 onClick={handleSave} 
                 disabled={isSaving}
-                className="min-w-[120px]"
+                className="min-w-[140px] h-11 sm:h-10 text-base sm:text-sm font-medium"
               >
                 {isSaving ? (
                   <>
@@ -257,11 +276,11 @@ export default function ProfilePage() {
         </Card>
 
         {/* Info Card */}
-        <Card className="mt-6">
-          <CardContent className="pt-6">
-            <div className="text-sm text-muted-foreground space-y-2">
+        <Card className="mt-4 sm:mt-6">
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-2">
               <p className="font-medium">Informacje o danych:</p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
+              <ul className="list-disc list-inside space-y-1 ml-2 sm:ml-4">
                 <li>Wszystkie dane profilu są przechowywane lokalnie na Twoim urządzeniu</li>
                 <li>Twoje dane nie są wysyłane na żaden zewnętrzny serwer</li>
                 <li>Dane są automatycznie synchronizowane między sesjami</li>

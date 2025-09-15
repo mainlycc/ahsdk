@@ -44,24 +44,24 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn("flex flex-col gap-4 sm:gap-6", className)} {...props}>
       <Card>
-        <CardHeader>
-          <CardTitle>Zaloguj się do swojego konta</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">Zaloguj się do swojego konta</CardTitle>
+          <CardDescription className="text-sm">
             Wprowadź swój email poniżej, aby się zalogować
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 sm:gap-6">
               {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20">
                   {error}
                 </div>
               )}
-              <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
+              <div className="grid gap-2 sm:gap-3">
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -70,14 +70,16 @@ export function LoginForm({
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="h-11 sm:h-10 text-base sm:text-sm"
+                  autoComplete="email"
                 />
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-2 sm:gap-3">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Hasło</Label>
+                  <Label htmlFor="password" className="text-sm font-medium">Hasło</Label>
                   <a
                     href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    className="ml-auto inline-block text-xs sm:text-sm underline-offset-4 hover:underline text-muted-foreground"
                   >
                     Zapomniałeś hasła?
                   </a>
@@ -89,11 +91,24 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                   required 
                   disabled={isLoading}
+                  className="h-11 sm:h-10 text-base sm:text-sm"
+                  autoComplete="current-password"
                 />
               </div>
-              <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logowanie..." : "Zaloguj się"}
+              <div className="flex flex-col gap-3 pt-2">
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 sm:h-10 text-base sm:text-sm font-medium" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                      Logowanie...
+                    </>
+                  ) : (
+                    "Zaloguj się"
+                  )}
                 </Button>
               </div>
             </div>

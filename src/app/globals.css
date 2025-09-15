@@ -122,4 +122,61 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    html {
+      /* Prevent zoom on input focus */
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    
+    /* Better touch targets */
+    button, input, select, textarea {
+      min-height: 44px;
+    }
+    
+    /* Prevent horizontal scroll */
+    body {
+      overflow-x: hidden;
+    }
+    
+    /* Better scrolling on iOS */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+  
+  /* Touch-friendly improvements */
+  @media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets for mobile */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Better spacing for touch */
+    .touch-spacing {
+      padding: 12px;
+    }
+  }
+  
+  /* Safe area insets for mobile devices */
+  @supports (padding: max(0px)) {
+    .safe-area-top {
+      padding-top: max(env(safe-area-inset-top), 0px);
+    }
+    
+    .safe-area-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    }
+    
+    .safe-area-left {
+      padding-left: max(env(safe-area-inset-left), 0px);
+    }
+    
+    .safe-area-right {
+      padding-right: max(env(safe-area-inset-right), 0px);
+    }
+  }
 }
